@@ -9,7 +9,7 @@
     "KJP12"
   ],
   "contact": {},
-  "license": "MIT",
+  "license": "LGPLv3",
   "icon": "assets/slumber/icon.png",
   "environment": "*",
   "entrypoints": {
