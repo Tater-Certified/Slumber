@@ -2,7 +2,7 @@ package com.github.QPCrummer.slumber;
 
 import carpet.helpers.TickSpeed;
 import com.mojang.brigadier.arguments.BoolArgumentType;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
@@ -15,8 +15,8 @@ import static net.minecraft.server.command.CommandManager.argument;
 public class ToggleCommand {
 
     public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> dispatcher.register(CommandManager.literal("serv-freeze")
-
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, dedicated) -> dispatcher.register(CommandManager.literal("serv-freeze")
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> {
                     boolean frozen = TickSpeed.isPaused();
                     boolean deeply = TickSpeed.deeplyFrozen();
