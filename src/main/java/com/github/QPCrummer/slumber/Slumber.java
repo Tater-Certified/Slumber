@@ -69,13 +69,22 @@ public class Slumber implements ModInitializer {
         //Register Command
         ToggleCommand.register();
 
-        // Freezes the server on startup if toggled on.
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> freeze());
+        // Freezes ticking during startup.
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> TickSpeed.setFrozenState(true, false));
+
+        // If it isn't intended to be enabled, unfreeze the server.
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (!enabled) {
+                unfreeze();
+            } else if (deepsleep) {
+                TickSpeed.setFrozenState(true, true);
+            }
+        });
 
         // Join handler; unfreezes the server when a player joins.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             var future = task;
-            if(future != null && !future.isDone()) {
+            if (future != null && !future.isDone()) {
                 future.cancel(false);
             }
             unfreeze();
