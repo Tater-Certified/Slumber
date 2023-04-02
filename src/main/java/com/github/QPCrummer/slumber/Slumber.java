@@ -91,21 +91,25 @@ public class Slumber implements ModInitializer {
 
     public static void storecfg() throws IOException {
         try (OutputStream output = Files.newOutputStream(config, StandardOpenOption.CREATE)) {
-            if (!properties.containsKey(CONFIG_VERSION_KEY)) {
-                properties.setProperty(CONFIG_VERSION_KEY, "1.0");
-            }
-            if (!properties.containsKey(FREEZE_DELAY_SECONDS_KEY)) {
-                properties.setProperty(FREEZE_DELAY_SECONDS_KEY, "20");
-            }
-            if (!properties.containsKey(COMPLETE_FREEZE_KEY)) {
-                properties.setProperty(COMPLETE_FREEZE_KEY, "false");
-            }
-            if (!properties.containsKey(TOGGLE_KEY)) {
-                properties.setProperty(TOGGLE_KEY, "false");
-            }
+            fillDefaults();
             properties.store(output, null);
         }
         parse();
+    }
+
+    private static void fillDefaults() {
+        if (!properties.containsKey(CONFIG_VERSION_KEY)) {
+            properties.setProperty(CONFIG_VERSION_KEY, "1.0");
+        }
+        if (!properties.containsKey(FREEZE_DELAY_SECONDS_KEY)) {
+            properties.setProperty(FREEZE_DELAY_SECONDS_KEY, "20");
+        }
+        if (!properties.containsKey(COMPLETE_FREEZE_KEY)) {
+            properties.setProperty(COMPLETE_FREEZE_KEY, "false");
+        }
+        if (!properties.containsKey(TOGGLE_KEY)) {
+            properties.setProperty(TOGGLE_KEY, "false");
+        }
     }
 
     public static void loadcfg() throws IOException {
@@ -115,6 +119,7 @@ public class Slumber implements ModInitializer {
     }
 
     public static void parse() {
+        fillDefaults();
         cfgver = properties.getProperty(CONFIG_VERSION_KEY);
         delay = Integer.parseInt(properties.getProperty(FREEZE_DELAY_SECONDS_KEY));
         deepsleep = Boolean.parseBoolean(properties.getProperty(COMPLETE_FREEZE_KEY));
