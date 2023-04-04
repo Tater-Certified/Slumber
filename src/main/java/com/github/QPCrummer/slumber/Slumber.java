@@ -1,6 +1,7 @@
 package com.github.QPCrummer.slumber;
 
 import carpet.helpers.TickSpeed;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -33,7 +34,7 @@ public class Slumber implements ModInitializer {
 
     public static boolean enabled;
 
-    private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor();
+    private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
 
     private static volatile ScheduledFuture<?> task;
 
