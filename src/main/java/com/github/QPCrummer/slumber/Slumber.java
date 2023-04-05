@@ -165,7 +165,8 @@ public class Slumber implements ModInitializer {
      * Freezes the server if it isn't already frozen.
      */
     public static void freeze() {
-        if (enabled && !TickSpeed.isPaused()) {
+        if (!enabled) return;
+        if (!TickSpeed.isPaused() || (deepsleep ^ TickSpeed.deeplyFrozen())) {
             TickSpeed.setFrozenState(true, deepsleep);
         }
     }
