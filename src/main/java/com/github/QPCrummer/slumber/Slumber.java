@@ -93,8 +93,12 @@ public class Slumber implements ModInitializer {
 
         // Disconnect handler; freezes the server when no players are online.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            if (server.getCurrentPlayerCount() == 1) {
-                task = wait.schedule(Slumber::freeze, delay, TimeUnit.SECONDS);
+            if (server.getCurrentPlayerCount() <= 1) {
+                task = wait.schedule(() -> {
+                    if (server.getCurrentPlayerCount() == 0) {
+                        server.execute(Slumber::freeze);
+                    }
+                }, delay, TimeUnit.SECONDS);
             }
         });
     }
