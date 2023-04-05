@@ -68,7 +68,7 @@ public class Slumber implements ModInitializer {
         }
 
         //Register Command
-        ToggleCommand.register();
+        SlumberCommand.register();
 
         // Freezes ticking during startup.
         ServerLifecycleEvents.SERVER_STARTING.register(server -> TickSpeed.setFrozenState(true, false));
