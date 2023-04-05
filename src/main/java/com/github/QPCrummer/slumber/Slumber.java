@@ -25,14 +25,17 @@ public class Slumber implements ModInitializer {
     final static String COMPLETE_FREEZE_KEY = "complete-freeze";
     final static String TOGGLE_KEY = "toggle";
     final static String FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds";
+    final static String SAFE_STARTING_KEY = "safe-starting";
 
     private static final Path config = FabricLoader.getInstance().getConfigDir().resolve("slumber.properties");
+
     public static Properties properties = new Properties();
-    public static String cfgver;
+    public static String cfgver = "1.1";
     public static int delay;
     public static boolean deepsleep;
 
     public static boolean enabled;
+    public static boolean safe_starting;
 
     private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
 
@@ -44,7 +47,6 @@ public class Slumber implements ModInitializer {
         if (Files.notExists(config)) {
             try {
                 storecfg();
-                System.out.println("Creating Slumber config");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -54,14 +56,13 @@ public class Slumber implements ModInitializer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            cfgver = properties.getProperty("config-version");
-            if (!(Objects.equals(cfgver, "1.0"))) {
+            if (!(Objects.equals(properties.getProperty(CONFIG_VERSION_KEY), cfgver))) {
+                properties.setProperty(CONFIG_VERSION_KEY, cfgver);
                 try {
                     storecfg();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
-                System.out.println("Updating Slumber config");
             } else {
                 parse();
             }
@@ -70,15 +71,19 @@ public class Slumber implements ModInitializer {
         //Register Command
         SlumberCommand.register();
 
-        // Freezes ticking during startup.
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> TickSpeed.setFrozenState(true, false));
+        // Freezes ticking during startup if safe-starting is enabled.
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            if (safe_starting) {
+                TickSpeed.setFrozenState(true, false);
+            }
+        });
 
-        // If it isn't intended to be enabled, unfreeze the server.
+        // Complete safe-starting and disable.
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (!enabled) {
                 unfreeze();
-            } else if (deepsleep) {
-                TickSpeed.setFrozenState(true, true);
+            } else {
+                freeze();
             }
         });
 
@@ -93,6 +98,7 @@ public class Slumber implements ModInitializer {
 
         // Disconnect handler; freezes the server when no players are online.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            //This less-than or equals one is because of FAPI weirdness
             if (server.getCurrentPlayerCount() <= 1) {
                 task = wait.schedule(() -> {
                     if (server.getCurrentPlayerCount() == 0) {
@@ -103,6 +109,9 @@ public class Slumber implements ModInitializer {
         });
     }
 
+    /**
+     * Save the config
+     */
     public static void storecfg() throws IOException {
         try (OutputStream output = Files.newOutputStream(config, StandardOpenOption.CREATE)) {
             fillDefaults();
@@ -111,9 +120,15 @@ public class Slumber implements ModInitializer {
         parse();
     }
 
+    /**
+     * If the config value doesn't exist, set it to default
+     */
     private static void fillDefaults() {
         if (!properties.containsKey(CONFIG_VERSION_KEY)) {
-            properties.setProperty(CONFIG_VERSION_KEY, "1.0");
+            properties.setProperty(CONFIG_VERSION_KEY, "1.1");
+        }
+        if (!properties.containsKey(SAFE_STARTING_KEY)) {
+            properties.setProperty(SAFE_STARTING_KEY, "true");
         }
         if (!properties.containsKey(FREEZE_DELAY_SECONDS_KEY)) {
             properties.setProperty(FREEZE_DELAY_SECONDS_KEY, "20");
@@ -126,18 +141,24 @@ public class Slumber implements ModInitializer {
         }
     }
 
+    /**
+     * Loads the config
+     */
     public static void loadcfg() throws IOException {
         try (InputStream input = Files.newInputStream(config)) {
             properties.load(input);
         }
     }
 
+    /**
+     * Parses the config to convert into Objects
+     */
     public static void parse() {
         fillDefaults();
-        cfgver = properties.getProperty(CONFIG_VERSION_KEY);
         delay = Integer.parseInt(properties.getProperty(FREEZE_DELAY_SECONDS_KEY));
         deepsleep = Boolean.parseBoolean(properties.getProperty(COMPLETE_FREEZE_KEY));
         enabled = Boolean.parseBoolean(properties.getProperty(TOGGLE_KEY));
+        safe_starting = Boolean.parseBoolean(properties.getProperty(SAFE_STARTING_KEY));
     }
 
     /**
