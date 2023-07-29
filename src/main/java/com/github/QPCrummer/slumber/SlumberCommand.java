@@ -1,6 +1,5 @@
 package com.github.QPCrummer.slumber;
 
-import carpet.helpers.TickSpeed;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -18,25 +17,20 @@ public class SlumberCommand {
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, dedicated) -> {
-            var slumber = dispatcher.register(literal("slumber")
+            dispatcher.register(literal("slumber")
                     .requires(source -> source.hasPermissionLevel(4))
                     .executes(SlumberCommand::status)
 
                     .then(argument("enabled", BoolArgumentType.bool())
                             .executes(SlumberCommand::set)));
-
-            dispatcher.register(literal("serv-freeze")
-                    .requires(source -> source.hasPermissionLevel(4))
-                    .executes(SlumberCommand::status)
-                    .redirect(slumber)
-            );
         });
     }
 
     private static int status(CommandContext<ServerCommandSource> context) {
-        boolean frozen = TickSpeed.isPaused();
-        boolean deeply = TickSpeed.deeplyFrozen();
-        context.getSource().sendFeedback(Text.of("Enabled: " + enabled +
+        boolean frozen = tickManager.gameIsPaused();
+        boolean deeply = tickManager.deeplyFrozen();
+
+        context.getSource().sendFeedback(() -> Text.of("Enabled: " + enabled +
                 ", Frozen: " + frozen + ", Deeply: " + deeply), false);
         return Command.SINGLE_SUCCESS;
     }
@@ -55,7 +49,7 @@ public class SlumberCommand {
             unfreeze();
         }
 
-        source.sendFeedback(Text.of("Server Freezing is now set to " + enabledArg), true);
+        source.sendFeedback(() -> Text.of("Server Freezing is now set to " + enabledArg), true);
 
         try {
             Slumber.storecfg();

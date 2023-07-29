@@ -1,11 +1,12 @@
 package com.github.QPCrummer.slumber;
 
-import carpet.helpers.TickSpeed;
+import carpet.helpers.ServerTickRateManager;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +42,8 @@ public class Slumber implements ModInitializer {
 
     private static volatile ScheduledFuture<?> task;
 
+    public static ServerTickRateManager tickManager;
+
     @Override
     public void onInitialize() {
         //Create Config
@@ -73,8 +76,9 @@ public class Slumber implements ModInitializer {
 
         // Freezes ticking during startup if safe-starting is enabled.
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            createTickManager(server);
             if (safe_starting) {
-                TickSpeed.setFrozenState(true, false);
+                tickManager.setFrozenState(true, false);
             }
         });
 
@@ -107,6 +111,10 @@ public class Slumber implements ModInitializer {
                 }, delay, TimeUnit.SECONDS);
             }
         });
+    }
+
+    private static void createTickManager(MinecraftServer server) {
+        tickManager = new ServerTickRateManager(server);
     }
 
     /**
@@ -166,8 +174,8 @@ public class Slumber implements ModInitializer {
      */
     public static void freeze() {
         if (!enabled) return;
-        if (!TickSpeed.isPaused() || (deepsleep ^ TickSpeed.deeplyFrozen())) {
-            TickSpeed.setFrozenState(true, deepsleep);
+        if (!tickManager.gameIsPaused() || (deepsleep ^ tickManager.deeplyFrozen())) {
+            tickManager.setFrozenState(true, deepsleep);
         }
     }
 
@@ -175,8 +183,8 @@ public class Slumber implements ModInitializer {
      * Unfreezes the server if it's frozen.
      */
     public static void unfreeze() {
-        if (TickSpeed.isPaused()) {
-            TickSpeed.setFrozenState(false, false);
+        if (tickManager.gameIsPaused()) {
+            tickManager.setFrozenState(false, false);
         }
     }
 }
