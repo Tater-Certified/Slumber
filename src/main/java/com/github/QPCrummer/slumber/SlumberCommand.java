@@ -36,18 +36,13 @@ public class SlumberCommand {
     }
 
     private static int set(CommandContext<ServerCommandSource> context) {
-        boolean enabledArg = BoolArgumentType.getBool(context, "enabled");
         ServerCommandSource source = context.getSource();
+        boolean enabledArg = BoolArgumentType.getBool(context, "enabled");
 
         enabled = enabledArg;
         properties.setProperty(TOGGLE_KEY, Boolean.toString(enabledArg));
-        if (enabledArg) {
-            if (source.getServer().getCurrentPlayerCount() == 0) {
-                freeze();
-            }
-        } else {
-            unfreeze();
-        }
+
+        freeze(enabledArg && source.getServer().getCurrentPlayerCount() == 0);
 
         source.sendFeedback(() -> Text.of("Server Freezing is now set to " + enabledArg), true);
 

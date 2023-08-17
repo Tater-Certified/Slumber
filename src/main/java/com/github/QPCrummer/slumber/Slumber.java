@@ -1,5 +1,6 @@
 package com.github.QPCrummer.slumber;
 
+import carpet.fakes.MinecraftServerInterface;
 import carpet.helpers.ServerTickRateManager;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.fabricmc.api.ModInitializer;
@@ -84,11 +85,7 @@ public class Slumber implements ModInitializer {
 
         // Complete safe-starting and disable.
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            if (!enabled) {
-                unfreeze();
-            } else {
-                freeze();
-            }
+            freeze(enabled);
         });
 
         // Join handler; unfreezes the server when a player joins.
@@ -97,7 +94,7 @@ public class Slumber implements ModInitializer {
             if (future != null && !future.isDone()) {
                 future.cancel(false);
             }
-            unfreeze();
+            freeze(false);
         });
 
         // Disconnect handler; freezes the server when no players are online.
@@ -106,7 +103,7 @@ public class Slumber implements ModInitializer {
             if (server.getCurrentPlayerCount() <= 1) {
                 task = wait.schedule(() -> {
                     if (server.getCurrentPlayerCount() == 0) {
-                        server.execute(Slumber::freeze);
+                        server.execute(() -> freeze(true));
                     }
                 }, delay, TimeUnit.SECONDS);
             }
@@ -114,7 +111,7 @@ public class Slumber implements ModInitializer {
     }
 
     private static void createTickManager(MinecraftServer server) {
-        tickManager = new ServerTickRateManager(server);
+        tickManager = ((MinecraftServerInterface)server).getTickRateManager();
     }
 
     /**
@@ -170,21 +167,11 @@ public class Slumber implements ModInitializer {
     }
 
     /**
-     * Freezes the server if it isn't already frozen.
+     * Toggles the freezing of the server
      */
-    public static void freeze() {
-        if (!enabled) return;
-        if (!tickManager.gameIsPaused() || (deepsleep ^ tickManager.deeplyFrozen())) {
-            tickManager.setFrozenState(true, deepsleep);
-        }
-    }
-
-    /**
-     * Unfreezes the server if it's frozen.
-     */
-    public static void unfreeze() {
-        if (tickManager.gameIsPaused()) {
-            tickManager.setFrozenState(false, false);
-        }
+    public static void freeze(boolean frozen) {
+        System.out.println(enabled + ", " + tickManager.gameIsPaused() + ", " + frozen);
+        if (!enabled || tickManager.gameIsPaused() == frozen) return;
+        tickManager.setFrozenState(frozen, deepsleep);
     }
 }
