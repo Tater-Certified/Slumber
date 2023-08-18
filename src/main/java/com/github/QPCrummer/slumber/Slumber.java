@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,22 +30,29 @@ public class Slumber implements ModInitializer {
     final static String TOGGLE_KEY = "toggle";
     final static String FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds";
     final static String SAFE_STARTING_KEY = "safe-starting";
+    final static String DEBUG_KEY = "debug-messages";
 
     private static final Path config = FabricLoader.getInstance().getConfigDir().resolve("slumber.properties");
 
-    public static Properties properties = new Properties();
-    public static String cfgver = "1.1";
+    public static final Properties properties = new Properties();
+    public static final String cfgver = "1.2";
     public static int delay;
     public static boolean deepsleep;
-
     public static boolean enabled;
     public static boolean safe_starting;
+    private static boolean debug;
+
+    private static long beginningTime;
+    private static long endingTime;
 
     private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
 
     private static volatile ScheduledFuture<?> task;
 
     public static ServerTickRateManager tickManager;
+
+    private static final Logger logger = LogManager.getLogger("Slumber");
+
 
     @Override
     public void onInitialize() {
@@ -80,27 +89,33 @@ public class Slumber implements ModInitializer {
             createTickManager(server);
             if (safe_starting) {
                 tickManager.setFrozenState(true, false);
+                calculateTimeElapsed(true);
+                sendToDebugLogger("Safe Starting Active");
             }
         });
 
         // Complete safe-starting and disable.
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            freeze(enabled);
+            tickManager.setFrozenState(enabled, deepsleep);
+            calculateTimeElapsed(enabled);
+            sendToDebugLogger("Safe Starting Finished; Continued Freeze: " + enabled);
         });
 
         // Join handler; unfreezes the server when a player joins.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            var future = task;
-            if (future != null && !future.isDone()) {
-                future.cancel(false);
+            if (enabled) {
+                var future = task;
+                if (future != null && !future.isDone()) {
+                    future.cancel(false);
+                }
+                freeze(false);
             }
-            freeze(false);
         });
 
         // Disconnect handler; freezes the server when no players are online.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             //This less-than or equals one is because of FAPI weirdness
-            if (server.getCurrentPlayerCount() <= 1) {
+            if (enabled && server.getCurrentPlayerCount() <= 1) {
                 task = wait.schedule(() -> {
                     if (server.getCurrentPlayerCount() == 0) {
                         server.execute(() -> freeze(true));
@@ -112,6 +127,7 @@ public class Slumber implements ModInitializer {
 
     private static void createTickManager(MinecraftServer server) {
         tickManager = ((MinecraftServerInterface)server).getTickRateManager();
+        sendToDebugLogger("TickManager Created");
     }
 
     /**
@@ -130,7 +146,7 @@ public class Slumber implements ModInitializer {
      */
     private static void fillDefaults() {
         if (!properties.containsKey(CONFIG_VERSION_KEY)) {
-            properties.setProperty(CONFIG_VERSION_KEY, "1.1");
+            properties.setProperty(CONFIG_VERSION_KEY, cfgver);
         }
         if (!properties.containsKey(SAFE_STARTING_KEY)) {
             properties.setProperty(SAFE_STARTING_KEY, "true");
@@ -142,7 +158,10 @@ public class Slumber implements ModInitializer {
             properties.setProperty(COMPLETE_FREEZE_KEY, "false");
         }
         if (!properties.containsKey(TOGGLE_KEY)) {
-            properties.setProperty(TOGGLE_KEY, "false");
+            properties.setProperty(TOGGLE_KEY, "true");
+        }
+        if (!properties.containsKey(DEBUG_KEY)) {
+            properties.setProperty(DEBUG_KEY, "false");
         }
     }
 
@@ -164,14 +183,41 @@ public class Slumber implements ModInitializer {
         deepsleep = Boolean.parseBoolean(properties.getProperty(COMPLETE_FREEZE_KEY));
         enabled = Boolean.parseBoolean(properties.getProperty(TOGGLE_KEY));
         safe_starting = Boolean.parseBoolean(properties.getProperty(SAFE_STARTING_KEY));
+        debug = Boolean.parseBoolean(properties.getProperty(DEBUG_KEY));
     }
 
     /**
      * Toggles the freezing of the server
      */
     public static void freeze(boolean frozen) {
-        System.out.println(enabled + ", " + tickManager.gameIsPaused() + ", " + frozen);
-        if (!enabled || tickManager.gameIsPaused() == frozen) return;
-        tickManager.setFrozenState(frozen, deepsleep);
+        sendToDebugLogger("Enabled:" + enabled + ", Game is Frozen: " + tickManager.gameIsPaused() + ", Trying to Freeze: " + frozen);
+        if (enabled || tickManager.gameIsPaused() != frozen) {
+            tickManager.setFrozenState(frozen, deepsleep);
+            calculateTimeElapsed(frozen);
+            sendToDebugLogger("Frozen: " + frozen);
+        }
+    }
+
+    public static void sendToDebugLogger(String message) {
+        if (debug) {
+            logger.info(message);
+        }
+    }
+
+    private static void calculateTimeElapsed(boolean frozen) {
+        if (debug) {
+            if (frozen && beginningTime == 0) {
+                beginningTime = System.currentTimeMillis();
+            } else if (!frozen && beginningTime != 0 && endingTime == 0) {
+                endingTime = System.currentTimeMillis();
+            }
+
+            if (endingTime != 0) {
+                int timeElapsed = (int) ((endingTime - beginningTime) / 1000);
+                sendToDebugLogger("Unfroze after " + timeElapsed + " seconds");
+                beginningTime = 0;
+                endingTime = 0;
+            }
+        }
     }
 }
