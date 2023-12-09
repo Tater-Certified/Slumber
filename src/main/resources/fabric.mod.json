@@ -17,10 +17,12 @@
       "com.github.QPCrummer.slumber.Slumber"
     ]
   },
+  "mixins": [
+    "slumber.mixins.json"
+  ],
   "depends": {
     "fabricloader": "*",
     "fabric": "*",
-    "minecraft": ">=1.20",
-    "carpet": "*"
+    "minecraft": ">=1.20.3"
   }
 }

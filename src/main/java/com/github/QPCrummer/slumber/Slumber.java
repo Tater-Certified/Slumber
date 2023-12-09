@@ -1,13 +1,12 @@
 package com.github.QPCrummer.slumber;
 
-import carpet.fakes.MinecraftServerInterface;
-import carpet.helpers.ServerTickRateManager;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.ServerTickManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Slumber implements ModInitializer {
     final static String CONFIG_VERSION_KEY = "config-version";
-    final static String COMPLETE_FREEZE_KEY = "complete-freeze";
     final static String TOGGLE_KEY = "toggle";
     final static String FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds";
     final static String SAFE_STARTING_KEY = "safe-starting";
@@ -35,9 +33,8 @@ public class Slumber implements ModInitializer {
     private static final Path config = FabricLoader.getInstance().getConfigDir().resolve("slumber.properties");
 
     public static final Properties properties = new Properties();
-    public static final String cfgver = "1.2";
+    public static final String cfgver = "1.3";
     public static int delay;
-    public static boolean deepsleep;
     public static boolean enabled;
     public static boolean safe_starting;
     private static boolean debug;
@@ -48,8 +45,6 @@ public class Slumber implements ModInitializer {
     private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
 
     private static volatile ScheduledFuture<?> task;
-
-    public static ServerTickRateManager tickManager;
 
     private static final Logger logger = LogManager.getLogger("Slumber");
 
@@ -86,9 +81,8 @@ public class Slumber implements ModInitializer {
 
         // Freezes ticking during startup if safe-starting is enabled.
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-            createTickManager(server);
             if (safe_starting) {
-                tickManager.setFrozenState(true, false);
+                ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(true);
                 calculateTimeElapsed(true);
                 sendToDebugLogger("Safe Starting Active");
             }
@@ -96,7 +90,7 @@ public class Slumber implements ModInitializer {
 
         // Complete safe-starting and disable.
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            tickManager.setFrozenState(enabled, deepsleep);
+            ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(enabled);
             calculateTimeElapsed(enabled);
             sendToDebugLogger("Safe Starting Finished; Continued Freeze: " + enabled);
         });
@@ -108,7 +102,7 @@ public class Slumber implements ModInitializer {
                 if (future != null && !future.isDone()) {
                     future.cancel(false);
                 }
-                freeze(false);
+                freeze(false, server);
             }
         });
 
@@ -118,16 +112,11 @@ public class Slumber implements ModInitializer {
             if (enabled && server.getCurrentPlayerCount() <= 1) {
                 task = wait.schedule(() -> {
                     if (server.getCurrentPlayerCount() == 0) {
-                        server.execute(() -> freeze(true));
+                        server.execute(() -> freeze(true, server));
                     }
                 }, delay, TimeUnit.SECONDS);
             }
         });
-    }
-
-    private static void createTickManager(MinecraftServer server) {
-        tickManager = ((MinecraftServerInterface)server).getTickRateManager();
-        sendToDebugLogger("TickManager Created");
     }
 
     /**
@@ -154,9 +143,6 @@ public class Slumber implements ModInitializer {
         if (!properties.containsKey(FREEZE_DELAY_SECONDS_KEY)) {
             properties.setProperty(FREEZE_DELAY_SECONDS_KEY, "20");
         }
-        if (!properties.containsKey(COMPLETE_FREEZE_KEY)) {
-            properties.setProperty(COMPLETE_FREEZE_KEY, "false");
-        }
         if (!properties.containsKey(TOGGLE_KEY)) {
             properties.setProperty(TOGGLE_KEY, "true");
         }
@@ -180,7 +166,6 @@ public class Slumber implements ModInitializer {
     public static void parse() {
         fillDefaults();
         delay = Integer.parseInt(properties.getProperty(FREEZE_DELAY_SECONDS_KEY));
-        deepsleep = Boolean.parseBoolean(properties.getProperty(COMPLETE_FREEZE_KEY));
         enabled = Boolean.parseBoolean(properties.getProperty(TOGGLE_KEY));
         safe_starting = Boolean.parseBoolean(properties.getProperty(SAFE_STARTING_KEY));
         debug = Boolean.parseBoolean(properties.getProperty(DEBUG_KEY));
@@ -189,10 +174,11 @@ public class Slumber implements ModInitializer {
     /**
      * Toggles the freezing of the server
      */
-    public static void freeze(boolean frozen) {
-        sendToDebugLogger("Enabled:" + enabled + ", Game is Frozen: " + tickManager.gameIsPaused() + ", Trying to Freeze: " + frozen);
-        if (enabled || tickManager.gameIsPaused() != frozen) {
-            tickManager.setFrozenState(frozen, deepsleep);
+    public static void freeze(boolean frozen, MinecraftServer server) {
+        ServerTickManager tickManager = server.getTickManager();
+        sendToDebugLogger("Enabled:" + enabled + ", Game is Frozen: " + tickManager.isFrozen() + ", Trying to Freeze: " + frozen);
+        if (enabled || tickManager.isFrozen() != frozen) {
+            ((TickManagerInterface)tickManager).setFrozenNoPacket(frozen);
             calculateTimeElapsed(frozen);
             sendToDebugLogger("Frozen: " + frozen);
         }

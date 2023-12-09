@@ -27,11 +27,10 @@ public class SlumberCommand {
     }
 
     private static int status(CommandContext<ServerCommandSource> context) {
-        boolean frozen = tickManager.gameIsPaused();
-        boolean deeply = tickManager.deeplyFrozen();
+        boolean frozen = context.getSource().getServer().getTickManager().isFrozen();
 
         context.getSource().sendFeedback(() -> Text.of("Enabled: " + enabled +
-                ", Frozen: " + frozen + ", Deeply: " + deeply), false);
+                ", Frozen: " + frozen), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -42,7 +41,7 @@ public class SlumberCommand {
         enabled = enabledArg;
         properties.setProperty(TOGGLE_KEY, Boolean.toString(enabledArg));
 
-        freeze(enabledArg && source.getServer().getCurrentPlayerCount() == 0);
+        freeze(enabledArg && source.getServer().getCurrentPlayerCount() == 0, source.getServer());
 
         source.sendFeedback(() -> Text.of("Server Freezing is now set to " + enabledArg), true);
 
