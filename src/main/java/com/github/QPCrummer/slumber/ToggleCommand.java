@@ -15,7 +15,10 @@ import static net.minecraft.server.command.CommandManager.argument;
 public class ToggleCommand {
 
     public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated, environment) -> dispatcher.register(CommandManager.literal("serv-freeze")
+        CommandRegistrationCallback.EVENT.register(
+                (dispatcher, dedicated, environment) -> dispatcher.register(
+                        CommandManager.literal("slumber")
+                                .redirect(dispatcher.register(CommandManager.literal("serv-freeze")
 
                 .executes(context -> {
                     final ServerTickManager tickManager = context.getSource().getServer().getTickManager();
@@ -48,6 +51,6 @@ public class ToggleCommand {
                         LOGGER.error("Config update failed", e);
                     }
                     return 1;
-                }))));
+                }))))));
     }
 }
