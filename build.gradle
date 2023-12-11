@@ -7,9 +7,9 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-    maven {
-        url 'https://masa.dy.fi/maven'
-    }
+//    maven {
+//        url 'https://masa.dy.fi/maven'
+//    }
 }
 
 dependencies {
@@ -20,7 +20,6 @@ dependencies {
 
     // Fabric API. This is technically optional, but you probably want it anyway.
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    modImplementation "carpet:fabric-carpet:${project.minecraft_version}-${project.carpet_core_version}"
 }
 
 processResources {

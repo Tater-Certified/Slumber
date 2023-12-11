@@ -1,10 +1,13 @@
 package com.github.QPCrummer.slumber;
 
-import carpet.helpers.TickSpeed;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.ServerTickManager;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,75 +21,79 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
 
 public class Slumber implements ModInitializer {
-    final static String CONFIG_VERSION_KEY = "config-version";
-    final static String COMPLETE_FREEZE_KEY = "complete-freeze";
-    final static String TOGGLE_KEY = "toggle";
-    final static String FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds";
+    //region Config variables
+    final static String
+            CONFIG_VERSION_KEY = "config-version",
+            TOGGLE_KEY = "toggle",
+            FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds";
 
     private static final Path config = FabricLoader.getInstance().getConfigDir().resolve("slumber.properties");
     public static Properties properties = new Properties();
     public static String cfgver;
     public static int delay;
-    public static boolean deepsleep;
+    //endregion
 
+    protected static final Logger LOGGER = LoggerFactory.getLogger("Slumber");
     public static boolean enabled;
-
     private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor();
-
     private static volatile ScheduledFuture<?> task;
 
     @Override
     public void onInitialize() {
-        //Create Config
+        //region Create Config
         if (Files.notExists(config)) {
             try {
                 storecfg();
-                System.out.println("Creating Slumber config");
+                LOGGER.info("Creating Slumber config");
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.error("Config creation failed", e);
             }
         } else {
             try {
                 loadcfg();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.error("Config loading failed", e);
             }
             cfgver = properties.getProperty("config-version");
-            if (!(Objects.equals(cfgver, "1.0"))) {
+            if (!(Objects.equals(cfgver, "1.1"))) {
                 try {
+                    LOGGER.info("Updating Slumber config");
                     storecfg();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.error("Config update failed", e);
                 }
-                System.out.println("Updating Slumber config");
             } else {
                 parse();
             }
         }
+        //endregion
 
         //Register Command
         ToggleCommand.register();
 
+        //region Events
         // Freezes the server on startup if toggled on.
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> freeze());
+        ServerLifecycleEvents.SERVER_STARTED.register(Slumber::freeze);
 
         // Join handler; unfreezes the server when a player joins.
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             var future = task;
-            if(future != null && !future.isDone()) {
+            if (future != null && !future.isDone()) {
                 future.cancel(false);
             }
-            unfreeze();
+            unfreeze(server);
         });
 
         // Disconnect handler; freezes the server when no players are online.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             if (server.getCurrentPlayerCount() == 1) {
-                task = wait.schedule(Slumber::freeze, delay, TimeUnit.SECONDS);
+                task = wait.schedule(() -> freeze(server), delay, TimeUnit.SECONDS);
             }
         });
+        //endregion
     }
 
     public static void storecfg() throws IOException {
@@ -96,9 +103,6 @@ public class Slumber implements ModInitializer {
             }
             if (!properties.containsKey(FREEZE_DELAY_SECONDS_KEY)) {
                 properties.setProperty(FREEZE_DELAY_SECONDS_KEY, "20");
-            }
-            if (!properties.containsKey(COMPLETE_FREEZE_KEY)) {
-                properties.setProperty(COMPLETE_FREEZE_KEY, "false");
             }
             if (!properties.containsKey(TOGGLE_KEY)) {
                 properties.setProperty(TOGGLE_KEY, "false");
@@ -117,25 +121,26 @@ public class Slumber implements ModInitializer {
     public static void parse() {
         cfgver = properties.getProperty(CONFIG_VERSION_KEY);
         delay = Integer.parseInt(properties.getProperty(FREEZE_DELAY_SECONDS_KEY));
-        deepsleep = Boolean.parseBoolean(properties.getProperty(COMPLETE_FREEZE_KEY));
         enabled = Boolean.parseBoolean(properties.getProperty(TOGGLE_KEY));
     }
 
     /**
      * Freezes the server if it isn't already frozen.
      */
-    public static void freeze() {
-        if (enabled && !TickSpeed.isPaused()) {
-            TickSpeed.setFrozenState(true, deepsleep);
+    public static void freeze(@NotNull MinecraftServer server) {
+        final ServerTickManager tickManager = server.getTickManager();
+        if (enabled && !tickManager.isFrozen()) {
+            server.getTickManager().setFrozen(true);
         }
     }
 
     /**
      * Unfreezes the server if it's frozen.
      */
-    public static void unfreeze() {
-        if (TickSpeed.isPaused()) {
-            TickSpeed.setFrozenState(false, false);
+    public static void unfreeze(@NotNull MinecraftServer server) {
+        final ServerTickManager tickManager = server.getTickManager();
+        if (tickManager.isFrozen()) {
+            tickManager.setFrozen(false);
         }
     }
 }
