@@ -24,23 +24,26 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class Slumber implements ModInitializer {
-    final static String CONFIG_VERSION_KEY = "config-version";
-    final static String TOGGLE_KEY = "toggle";
-    final static String FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds";
-    final static String SAFE_STARTING_KEY = "safe-starting";
-    final static String DEBUG_KEY = "debug-messages";
+    final static String
+            CONFIG_VERSION_KEY = "config-version",
+            TOGGLE_KEY = "toggle",
+            FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds",
+            SAFE_STARTING_KEY = "safe-starting",
+            DEBUG_KEY = "debug-messages";
 
     private static final Path config = FabricLoader.getInstance().getConfigDir().resolve("slumber.properties");
 
     public static final Properties properties = new Properties();
     public static final String cfgver = "1.3";
     public static int delay;
-    public static boolean enabled;
-    public static boolean safe_starting;
-    private static boolean debug;
+    public static boolean
+            enabled,
+            safe_starting,
+            debug;
 
-    private static long beginningTime;
-    private static long endingTime;
+    private static long
+            beginningTime,
+            endingTime;
 
     private static final ScheduledExecutorService wait = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
 
@@ -56,13 +59,13 @@ public class Slumber implements ModInitializer {
             try {
                 storecfg();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Config storing failed", e);
             }
         } else {
             try {
                 loadcfg();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Config creation failed", e);
             }
             if (!(Objects.equals(properties.getProperty(CONFIG_VERSION_KEY), cfgver))) {
                 properties.setProperty(CONFIG_VERSION_KEY, cfgver);
