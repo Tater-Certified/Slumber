@@ -29,16 +29,20 @@ public class Slumber implements ModInitializer {
             TOGGLE_KEY = "toggle",
             FREEZE_DELAY_SECONDS_KEY = "freeze-delay-seconds",
             SAFE_STARTING_KEY = "safe-starting",
+            SLEEP_TICK_SPEED = "sleep_tick_speed",
+            SLEEP_AUTOSAVING = "sleep_autosaving",
             DEBUG_KEY = "debug-messages";
 
     private static final Path config = FabricLoader.getInstance().getConfigDir().resolve("slumber.properties");
 
     public static final Properties properties = new Properties();
-    public static final String cfgver = "1.3";
+    public static final String cfgver = "1.4";
     public static int delay;
+    public static float sleep_tick_speed;
     public static boolean
             enabled,
             safe_starting,
+            autosaving,
             debug;
 
     private static long
@@ -137,20 +141,18 @@ public class Slumber implements ModInitializer {
      * If the config value doesn't exist, set it to default
      */
     private static void fillDefaults() {
-        if (!properties.containsKey(CONFIG_VERSION_KEY)) {
-            properties.setProperty(CONFIG_VERSION_KEY, cfgver);
-        }
-        if (!properties.containsKey(SAFE_STARTING_KEY)) {
-            properties.setProperty(SAFE_STARTING_KEY, "true");
-        }
-        if (!properties.containsKey(FREEZE_DELAY_SECONDS_KEY)) {
-            properties.setProperty(FREEZE_DELAY_SECONDS_KEY, "20");
-        }
-        if (!properties.containsKey(TOGGLE_KEY)) {
-            properties.setProperty(TOGGLE_KEY, "true");
-        }
-        if (!properties.containsKey(DEBUG_KEY)) {
-            properties.setProperty(DEBUG_KEY, "false");
+        checkProperty(CONFIG_VERSION_KEY, cfgver);
+        checkProperty(SAFE_STARTING_KEY, "true");
+        checkProperty(FREEZE_DELAY_SECONDS_KEY, "20");
+        checkProperty(TOGGLE_KEY, "true");
+        checkProperty(DEBUG_KEY, "false");
+        checkProperty(SLEEP_TICK_SPEED, "0.0");
+        checkProperty(SLEEP_AUTOSAVING, "false");
+    }
+
+    private static void checkProperty(String key, String defaultValue) {
+        if (!properties.containsKey(key)) {
+            properties.setProperty(key, defaultValue);
         }
     }
 
@@ -172,6 +174,8 @@ public class Slumber implements ModInitializer {
         enabled = Boolean.parseBoolean(properties.getProperty(TOGGLE_KEY));
         safe_starting = Boolean.parseBoolean(properties.getProperty(SAFE_STARTING_KEY));
         debug = Boolean.parseBoolean(properties.getProperty(DEBUG_KEY));
+        sleep_tick_speed = Float.parseFloat(properties.getProperty(SLEEP_TICK_SPEED));
+        autosaving = Boolean.parseBoolean(properties.getProperty(SLEEP_AUTOSAVING));
     }
 
     /**
@@ -179,12 +183,36 @@ public class Slumber implements ModInitializer {
      */
     public static void freeze(boolean frozen, MinecraftServer server) {
         ServerTickManager tickManager = server.getTickManager();
-        sendToDebugLogger("Enabled:" + enabled + ", Game is Frozen: " + tickManager.isFrozen() + ", Trying to Freeze: " + frozen);
-        if (enabled || tickManager.isFrozen() != frozen) {
-            ((TickManagerInterface)tickManager).setFrozenNoPacket(frozen);
+        sendToDebugLogger("Enabled:" + enabled + ", Frozen: " + tickManager.isFrozen() + ", Trying to Freeze: " + frozen + ", TPS: " + tickManager.getTickRate());
+
+        if (enabled) {
+            if (sleep_tick_speed > 0) {
+                changeTickRateAction(frozen, tickManager);
+            } else {
+                freezeServerAction(frozen, tickManager);
+            }
+            if (!autosaving) {
+                ((MinecraftServerInterface)server).setAutoSave(!frozen);
+            }
+        }
+    }
+
+    private static void freezeServerAction(boolean frozen, ServerTickManager tickManager) {
+        if (tickManager.isFrozen() != frozen) {
+            ((TickManagerInterface) tickManager).setFrozenNoPacket(frozen);
             calculateTimeElapsed(frozen);
             sendToDebugLogger("Frozen: " + frozen);
         }
+    }
+
+    private static void changeTickRateAction(boolean frozen, ServerTickManager tickManager) {
+        if (frozen) {
+            ((TickManagerInterface)tickManager).setTickRateNoPacket(sleep_tick_speed);
+        } else {
+            ((TickManagerInterface)tickManager).setTickRateNoPacket(20.0f);
+        }
+        sendToDebugLogger("TPS: " + tickManager.getTickRate());
+        calculateTimeElapsed(frozen);
     }
 
     public static void sendToDebugLogger(String message) {

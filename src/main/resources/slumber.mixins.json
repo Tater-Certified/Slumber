@@ -3,6 +3,7 @@
   "package": "com.github.QPCrummer.slumber.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "MinecraftServerMixin",
     "ServerTickManagerMixin"
   ],
   "injectors": {

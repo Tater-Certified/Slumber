@@ -12,4 +12,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public void setFrozenNoPacket(boolean frozen) {
         super.setFrozen(frozen);
     }
+
+    @Override
+    public void setTickRateNoPacket(float tickRate) {
+        super.setTickRate(tickRate);
+    }
 }
