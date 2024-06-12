@@ -3,7 +3,7 @@ Let the server rest while there are no players online.
 
 This mod allows you to freeze your server when no players are online.
 
-Minecraft version before 1.20.3 requires [fabric-carpet](https://github.com/gnembon/fabric-carpet).
+Minecraft versions before 1.20.3 require [fabric-carpet](https://github.com/gnembon/fabric-carpet).
 
 ## Commands
 `/slumber` displays current status whether it is frozed or not, it has the following output.
