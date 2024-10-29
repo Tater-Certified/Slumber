@@ -48,7 +48,7 @@ public class SlumberCommand {
         try {
             Slumber.storecfg();
         } catch (IOException e) {
-            e.printStackTrace();
+            sendToDebugLogger("Failed to save config: " + e);
         }
 
         return Command.SINGLE_SUCCESS;
