@@ -37,7 +37,7 @@ public class Slumber implements ModInitializer {
 
     public static final Properties properties = new Properties();
     public static final String cfgver = "1.4";
-    public static int delay;
+    public static int delay = -1;
     public static float sleep_tick_speed;
     public static boolean
             enabled,
@@ -97,9 +97,20 @@ public class Slumber implements ModInitializer {
 
         // Complete safe-starting and disable.
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(enabled);
+            if (enabled) {
+                if (sleep_tick_speed > 0) {
+                    ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(false);
+                    changeTickRateAction(true, server.getTickManager());
+                } else {
+                    ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(true);
+                }
+            } else {
+                ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(false);
+            }
             calculateTimeElapsed(enabled);
-            sendToDebugLogger("Safe Starting Finished; Continued Freeze: " + enabled);
+            if (safe_starting) {
+                sendToDebugLogger("Safe Starting Finished; Continued Freeze: " + enabled);
+            }
         });
 
         // Join handler; unfreezes the server when a player joins.
@@ -183,7 +194,6 @@ public class Slumber implements ModInitializer {
      */
     public static void freeze(boolean frozen, MinecraftServer server) {
         ServerTickManager tickManager = server.getTickManager();
-        sendToDebugLogger("Enabled:" + enabled + ", Frozen: " + tickManager.isFrozen() + ", Trying to Freeze: " + frozen + ", TPS: " + tickManager.getTickRate());
 
         if (enabled) {
             if (sleep_tick_speed > 0) {
@@ -195,6 +205,9 @@ public class Slumber implements ModInitializer {
                 ((MinecraftServerInterface)server).setAutoSave(!frozen);
             }
         }
+
+        float realTPS = sleep_tick_speed > 0 ? tickManager.getTickRate() : 0;
+        sendToDebugLogger("Enabled:" + enabled + ", Frozen: " + tickManager.isFrozen() + ", Trying to Freeze: " + frozen + ", TPS: " + realTPS);
     }
 
     private static void freezeServerAction(boolean frozen, ServerTickManager tickManager) {
