@@ -1,6 +1,5 @@
 package com.github.QPCrummer.slumber.mixin;
 
-import com.github.QPCrummer.slumber.Slumber;
 import net.minecraft.server.dedicated.AbstractPropertiesHandler;
 import net.minecraft.server.dedicated.ServerPropertiesHandler;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,10 +14,12 @@ public abstract class ServerPropertiesHandlerMixin extends AbstractPropertiesHan
         super(properties);
     }
 
-    @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/dedicated/ServerPropertiesHandler;getInt(Ljava/lang/String;I)I", ordinal = 13))
-    private int redirectMojangImplemenation(ServerPropertiesHandler instance, String s, int i) {
-        // TODO Redirect this to Slumber delay
-        //Slumber.delay = this.getInt(s, -1);
+    @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/dedicated/ServerPropertiesHandler;intAccessor(Ljava/lang/String;I)Lnet/minecraft/server/dedicated/AbstractPropertiesHandler$PropertyAccessor;", ordinal = 7))
+    private PropertyAccessor redirectMojangImpl(ServerPropertiesHandler instance, String s, int i) {
+        return this.accessor(s, ServerPropertiesHandlerMixin::dummyImpl, 0);
+    }
+
+    private static Integer dummyImpl(String s) {
         return 0;
     }
 }
