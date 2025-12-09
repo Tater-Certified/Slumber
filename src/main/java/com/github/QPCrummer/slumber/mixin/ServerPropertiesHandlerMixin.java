@@ -14,7 +14,7 @@ public abstract class ServerPropertiesHandlerMixin extends AbstractPropertiesHan
         super(properties);
     }
 
-    @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/dedicated/ServerPropertiesHandler;intAccessor(Ljava/lang/String;I)Lnet/minecraft/server/dedicated/AbstractPropertiesHandler$PropertyAccessor;", ordinal = 7))
+    @Redirect(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/dedicated/ServerPropertiesHandler;intAccessor(Ljava/lang/String;I)Lnet/minecraft/server/dedicated/AbstractPropertiesHandler$PropertyAccessor;", ordinal = 6))
     private PropertyAccessor redirectMojangImpl(ServerPropertiesHandler instance, String s, int i) {
         return this.accessor(s, ServerPropertiesHandlerMixin::dummyImpl, 0);
     }

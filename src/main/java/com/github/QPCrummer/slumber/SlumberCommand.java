@@ -4,6 +4,8 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.GameModeCommand;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
@@ -18,7 +20,7 @@ public class SlumberCommand {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, dedicated) -> {
             dispatcher.register(literal("slumber")
-                    .requires(source -> source.hasPermissionLevel(4))
+                    .requires(CommandManager.requirePermissionLevel(GameModeCommand.PERMISSION_CHECK))
                     .executes(SlumberCommand::status)
 
                     .then(argument("enabled", BoolArgumentType.bool())
