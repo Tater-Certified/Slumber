@@ -19,7 +19,7 @@ public class MinecraftServerMixin implements MinecraftServerInterface {
         autosaving = enable;
     }
 
-    @WrapOperation(method = "tick", at = @At(value = "FIELD", target = "Lnet/minecraft/server/MinecraftServer;ticksUntilAutosave:I", ordinal = 0, opcode = Opcodes.GETFIELD))
+    @WrapOperation(method = "tickServer", at = @At(value = "FIELD", target = "Lnet/minecraft/server/MinecraftServer;ticksUntilAutosave:I", ordinal = 0, opcode = Opcodes.GETFIELD))
     private int checkAutoSaving(MinecraftServer instance, Operation<Integer> original) {
         if (autosaving) {
             return this.ticksUntilAutosave;
@@ -27,7 +27,7 @@ public class MinecraftServerMixin implements MinecraftServerInterface {
         return original.call(instance);
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;getPauseWhenEmptySeconds()I", ordinal = 0))
+    @Redirect(method = "tickServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;pauseWhenEmptySeconds()I", ordinal = 0))
     private int removeMojangImplementation(MinecraftServer instance) {
         return 0;
     }

@@ -1,12 +1,12 @@
 package com.github.QPCrummer.slumber.mixin;
 
 import com.github.QPCrummer.slumber.TickManagerInterface;
-import net.minecraft.server.ServerTickManager;
-import net.minecraft.world.tick.TickManager;
+import net.minecraft.server.ServerTickRateManager;
+import net.minecraft.world.TickRateManager;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(ServerTickManager.class)
-public abstract class ServerTickManagerMixin extends TickManager implements TickManagerInterface {
+@Mixin(ServerTickRateManager.class)
+public abstract class ServerTickRateManagerMixin extends TickRateManager implements TickManagerInterface {
 
     @Override
     public void setFrozenNoPacket(boolean frozen) {

@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.ServerTickManager;
+import net.minecraft.server.ServerTickRateManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -89,7 +89,7 @@ public class Slumber implements ModInitializer {
         // Freezes ticking during startup if safe-starting is enabled.
         ServerLifecycleEvents.SERVER_STARTING.register(server -> {
             if (safe_starting) {
-                ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(true);
+                ((TickManagerInterface)server.tickRateManager()).setFrozenNoPacket(true);
                 calculateTimeElapsed(true);
                 sendToDebugLogger("Safe Starting Active");
             }
@@ -99,13 +99,13 @@ public class Slumber implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (enabled) {
                 if (sleep_tick_speed > 0) {
-                    ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(false);
-                    changeTickRateAction(true, server.getTickManager());
+                    ((TickManagerInterface)server.tickRateManager()).setFrozenNoPacket(false);
+                    changeTickRateAction(true, server.tickRateManager());
                 } else {
-                    ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(true);
+                    ((TickManagerInterface)server.tickRateManager()).setFrozenNoPacket(true);
                 }
             } else {
-                ((TickManagerInterface)server.getTickManager()).setFrozenNoPacket(false);
+                ((TickManagerInterface)server.tickRateManager()).setFrozenNoPacket(false);
             }
             calculateTimeElapsed(enabled);
             if (safe_starting) {
@@ -127,9 +127,9 @@ public class Slumber implements ModInitializer {
         // Disconnect handler; freezes the server when no players are online.
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             //This less-than or equals one is because of FAPI weirdness
-            if (enabled && server.getCurrentPlayerCount() <= 1) {
+            if (enabled && server.getPlayerCount() <= 1) {
                 task = wait.schedule(() -> {
-                    if (server.getCurrentPlayerCount() == 0) {
+                    if (server.getPlayerCount() == 0) {
                         server.execute(() -> freeze(true, server));
                     }
                 }, delay, TimeUnit.SECONDS);
@@ -193,7 +193,7 @@ public class Slumber implements ModInitializer {
      * Toggles the freezing of the server
      */
     public static void freeze(boolean frozen, MinecraftServer server) {
-        ServerTickManager tickManager = server.getTickManager();
+        ServerTickRateManager tickManager = server.tickRateManager();
 
         if (enabled) {
             if (sleep_tick_speed > 0) {
@@ -206,11 +206,11 @@ public class Slumber implements ModInitializer {
             }
         }
 
-        float realTPS = sleep_tick_speed > 0 ? tickManager.getTickRate() : 0;
+        float realTPS = sleep_tick_speed > 0 ? tickManager.tickrate() : 0;
         sendToDebugLogger("Enabled:" + enabled + ", Frozen: " + tickManager.isFrozen() + ", Trying to Freeze: " + frozen + ", TPS: " + realTPS);
     }
 
-    private static void freezeServerAction(boolean frozen, ServerTickManager tickManager) {
+    private static void freezeServerAction(boolean frozen, ServerTickRateManager tickManager) {
         if (tickManager.isFrozen() != frozen) {
             ((TickManagerInterface) tickManager).setFrozenNoPacket(frozen);
             calculateTimeElapsed(frozen);
@@ -218,13 +218,13 @@ public class Slumber implements ModInitializer {
         }
     }
 
-    private static void changeTickRateAction(boolean frozen, ServerTickManager tickManager) {
+    private static void changeTickRateAction(boolean frozen, ServerTickRateManager tickManager) {
         if (frozen) {
             ((TickManagerInterface)tickManager).setTickRateNoPacket(sleep_tick_speed);
         } else {
             ((TickManagerInterface)tickManager).setTickRateNoPacket(20.0f);
         }
-        sendToDebugLogger("TPS: " + tickManager.getTickRate());
+        sendToDebugLogger("TPS: " + tickManager.tickrate());
         calculateTimeElapsed(frozen);
     }
 
