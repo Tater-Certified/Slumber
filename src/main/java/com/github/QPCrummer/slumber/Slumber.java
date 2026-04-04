@@ -114,7 +114,7 @@ public class Slumber implements ModInitializer {
         });
 
         // Join handler; unfreezes the server when a player joins.
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+        ServerPlayConnectionEvents.JOIN.register((_, _, server) -> {
             if (enabled) {
                 var future = task;
                 if (future != null && !future.isDone()) {
@@ -125,7 +125,7 @@ public class Slumber implements ModInitializer {
         });
 
         // Disconnect handler; freezes the server when no players are online.
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+        ServerPlayConnectionEvents.DISCONNECT.register((_, server) -> {
             //This less-than or equals one is because of FAPI weirdness
             if (enabled && server.getPlayerCount() <= 1) {
                 task = wait.schedule(() -> {

@@ -18,7 +18,7 @@ import static net.minecraft.commands.Commands.literal;
 public class SlumberCommand {
 
     public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, dedicated) -> {
+        CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
             dispatcher.register(literal("slumber")
                     .requires(Commands.hasPermission(GameModeCommand.PERMISSION_CHECK))
                     .executes(SlumberCommand::status)

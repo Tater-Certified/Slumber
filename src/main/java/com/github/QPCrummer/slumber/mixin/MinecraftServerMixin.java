@@ -20,7 +20,7 @@ public class MinecraftServerMixin implements MinecraftServerInterface {
     }
 
     @WrapOperation(method = "tickServer", at = @At(value = "FIELD", target = "Lnet/minecraft/server/MinecraftServer;ticksUntilAutosave:I", ordinal = 0, opcode = Opcodes.GETFIELD))
-    private int checkAutoSaving(MinecraftServer instance, Operation<Integer> original) {
+    private int slumber$checkAutoSaving(MinecraftServer instance, Operation<Integer> original) {
         if (autosaving) {
             return this.ticksUntilAutosave;
         }
@@ -28,7 +28,7 @@ public class MinecraftServerMixin implements MinecraftServerInterface {
     }
 
     @Redirect(method = "tickServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;pauseWhenEmptySeconds()I", ordinal = 0))
-    private int removeMojangImplementation(MinecraftServer instance) {
+    private int slumber$removeMojangImplementation(MinecraftServer instance) {
         return 0;
     }
 }
