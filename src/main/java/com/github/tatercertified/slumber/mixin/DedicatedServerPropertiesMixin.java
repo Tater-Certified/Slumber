@@ -1,12 +1,15 @@
-package com.github.QPCrummer.slumber.mixin;
+/**
+ * Copyright (c) 2026 QPCrummer
+ * This project is Licensed under <a href="https://github.com/Tater-Certified/Slumber/blob/main/LICENSE">MIT</a>
+ */
+package com.github.tatercertified.slumber.mixin;
 
-import net.minecraft.server.dedicated.Settings;
+import java.util.Properties;
 import net.minecraft.server.dedicated.DedicatedServerProperties;
+import net.minecraft.server.dedicated.Settings;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
-
-import java.util.Properties;
 
 @Mixin(DedicatedServerProperties.class)
 public abstract class DedicatedServerPropertiesMixin extends Settings<DedicatedServerProperties> {

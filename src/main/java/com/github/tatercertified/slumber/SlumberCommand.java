@@ -1,31 +1,32 @@
-package com.github.QPCrummer.slumber;
+/**
+ * Copyright (c) 2026 QPCrummer
+ * This project is Licensed under <a href="https://github.com/Tater-Certified/Slumber/blob/main/LICENSE">MIT</a>
+ */
+package com.github.tatercertified.slumber;
 
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.BoolArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.commands.Commands;
-import net.minecraft.server.commands.GameModeCommand;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
-
-import java.io.IOException;
-
-import static com.github.QPCrummer.slumber.Slumber.*;
+import static com.github.tatercertified.slumber.Slumber.*;
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import java.io.IOException;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.commands.GameModeCommand;
+
 public class SlumberCommand {
 
-    public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
-            dispatcher.register(literal("slumber")
-                    .requires(Commands.hasPermission(GameModeCommand.PERMISSION_CHECK))
-                    .executes(SlumberCommand::status)
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(literal("slumber")
+                .requires(Commands.hasPermission(GameModeCommand.PERMISSION_CHECK))
+                .executes(SlumberCommand::status)
 
-                    .then(argument("enabled", BoolArgumentType.bool())
-                            .executes(SlumberCommand::set)));
-        });
+                .then(argument("enabled", BoolArgumentType.bool())
+                        .executes(SlumberCommand::set)));
     }
 
     private static int status(CommandContext<CommandSourceStack> context) {
@@ -41,7 +42,7 @@ public class SlumberCommand {
         boolean enabledArg = BoolArgumentType.getBool(context, "enabled");
 
         enabled = enabledArg;
-        properties.setProperty(TOGGLE_KEY, Boolean.toString(enabledArg));
+        PROPERTIES.setProperty(TOGGLE_KEY, Boolean.toString(enabledArg));
 
         freeze(enabledArg && source.getServer().getPlayerCount() == 0, source.getServer());
 

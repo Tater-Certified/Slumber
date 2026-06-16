@@ -1,0 +1,8 @@
+{
+  "id": "${mod_id}",
+  "version": "${version}",
+  "mixins": [
+    "slumber.mixins.json"
+  ],
+  "wideners": []
+}

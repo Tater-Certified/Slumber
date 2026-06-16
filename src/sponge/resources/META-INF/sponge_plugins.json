@@ -1,0 +1,23 @@
+{
+  "loader": {
+    "name": "java_plain",
+    "version": "1.0"
+  },
+  "license": "${license}",
+  "plugins": [
+    {
+      "id": "${mod_id}",
+      "name": "${mod_name}",
+      "description": "${description}",
+      "version": "${version}",
+      "branding": {},
+      "links": {
+        "homepage": "${homepage_url}",
+        "source": "${source_url}",
+        "issues": "${issue_url}"
+      },
+      "dependencies": [
+      ]
+    }
+  ]
+}

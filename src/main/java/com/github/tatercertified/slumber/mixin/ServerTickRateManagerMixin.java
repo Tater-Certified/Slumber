@@ -1,6 +1,10 @@
-package com.github.QPCrummer.slumber.mixin;
+/**
+ * Copyright (c) 2026 QPCrummer
+ * This project is Licensed under <a href="https://github.com/Tater-Certified/Slumber/blob/main/LICENSE">MIT</a>
+ */
+package com.github.tatercertified.slumber.mixin;
 
-import com.github.QPCrummer.slumber.TickManagerInterface;
+import com.github.tatercertified.slumber.TickManagerInterface;
 import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.world.TickRateManager;
 import org.spongepowered.asm.mixin.Mixin;
