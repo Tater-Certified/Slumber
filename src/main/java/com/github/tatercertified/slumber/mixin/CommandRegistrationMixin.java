@@ -23,7 +23,7 @@ public class CommandRegistrationMixin {
     private CommandDispatcher<CommandSourceStack> dispatcher;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void optometrist$registerCommand(Commands.CommandSelection commandSelection, CommandBuildContext context, CallbackInfo ci) {
+    private void slumber$registerCommand(Commands.CommandSelection commandSelection, CommandBuildContext context, CallbackInfo ci) {
         SlumberCommand.register(this.dispatcher);
     }
 }
