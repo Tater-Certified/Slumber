@@ -151,6 +151,7 @@ tasks.jar {
         neoforge.output,
         paper.output,
         sponge.output,
+        paper.output,
     )
 
 
